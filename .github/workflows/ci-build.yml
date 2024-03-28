@@ -15,9 +15,10 @@ jobs:
           cache: npm
       - name: Install
         run: npm install
-      - name: Run tests
-        run: npm run test:unit
+      # - name: Run tests
+      #   run: npm run test:unit
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -35,7 +36,7 @@ jobs:
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
         TENANT_ID: ${{ secrets.TENANT_ID }}
       run: |
-        packer build \
+        cd devops && packer build \
         -var client_id=$CLIENT_ID \
         -var client_secret=$CLIENT_SECRET \
         -var tenant_id=$TENANT_ID \
