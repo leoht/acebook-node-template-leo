@@ -1,8 +1,8 @@
 name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+run-name: Run tests
 on: [push]
 jobs:
-  Explore-GitHub-Actions:
+  build:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Hi from CI"
@@ -17,3 +17,26 @@ jobs:
         run: npm install
       - name: Run tests
         run: npm run test:unit
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup `packer`
+      uses: hashicorp/setup-packer@main
+      id: setup
+      with:
+        version: 1.8.6
+    - name: Add Azure integration
+      run: packer plugins install github.com/hashicorp/azure
+    - name: Build Azure image
+      env:
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+        TENANT_ID: ${{ secrets.TENANT_ID }}
+      run: |
+        packer build \
+        -var client_id=$CLIENT_ID \
+        -var client_secret=$CLIENT_SECRET \
+        -var tenant_id=$TENANT_ID \
+        packer.json

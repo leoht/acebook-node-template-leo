@@ -1,0 +1,83 @@
+{
+    "builders": [{
+      "type": "azure-arm",
+  
+      "client_id": "{{user `client_id`}}",
+      "client_secret": "{{user `client_secret`}}",
+      "tenant_id":  "{{user `tenant_id`}}",
+      "subscription_id": "c8c5a280-46f0-42c8-bf18-cef74238b5bd",
+  
+      "managed_image_resource_group_name": "provisioning-group",
+      "managed_image_name": "provisioning-image-{{isotime | clean_resource_name}}",
+
+      "ssh_username": "azureuser",
+  
+      "os_type": "Linux",
+      "image_publisher": "canonical",
+      "image_offer": "0001-com-ubuntu-server-jammy",
+      "image_sku": "22_04-lts",
+  
+      "azure_tags": {
+          "dept": "Engineering",
+          "task": "Image deployment"
+      },
+  
+      "location": "UK South",
+      "vm_size": "Standard_B1s"
+    }],
+    "provisioners": [{
+      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+      "inline": [
+        "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash && . /home/azureuser/.bashrc"
+      ],
+      "type": "shell"
+    }, {
+        "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+        "inline": [
+            "export NVM_DIR=\"$HOME/.nvm\" ",
+            "[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" ",
+            "[ -s \"$NVM_DIR/bash_completion\" ] && \\. \"$NVM_DIR/bash_completion\" ",
+            "nvm install v18.20.0 && nvm use v18.20.0 && node -v",
+            "mkdir -p /home/azureuser/webapp && cd /home/azureuser/webapp",
+            "git clone https://github.com/makersacademy/acebook-node-template",
+            "cd acebook-node-template",
+            "npm install"
+        ],
+        "type": "shell"
+    }, {
+        "type": "shell",
+        "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+        "inline": [
+            "sudo apt-get install gnupg curl",
+            "curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor",
+            "echo \"deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse\" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list",
+            "sudo apt-get update",
+            "sudo apt-get install -y mongodb-org",
+            "sudo systemctl enable mongod"
+
+        ]
+    }, {
+        "type": "file",
+        "source": "service.conf",
+        "destination": "/home/azureuser/acebook.conf"
+    }, {
+        "type": "shell",
+        "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+        "inline": [
+            "chown -R azureuser /home/azureuser/webapp"
+        ]
+    }, {
+        "type": "file",
+        "source": "start.sh",
+        "destination": "/home/azureuser/webapp/acebook-node-template/start.sh"
+    }, {
+        "type": "shell",
+        "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+        "inline": [
+            "chmod +x /home/azureuser/webapp/acebook-node-template/start.sh",
+            "mv /home/azureuser/acebook.conf /lib/systemd/system/acebook.service",
+            "sudo systemctl enable acebook",
+            "sudo systemctl start acebook"
+        ]
+    }]
+  }
